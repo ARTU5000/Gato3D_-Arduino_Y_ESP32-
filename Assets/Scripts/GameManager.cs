@@ -55,6 +55,8 @@ public class GameManager : MonoBehaviour
     public string bluetoothPort = "COM7"; // Puerto Bluetooth (ESP32)
     public int bluetoothBaudRate = 9600;
 
+    List<GameObject> activeWinLines = new List<GameObject>();
+
     // Teclas para cada posición
     private KeyCode[] keyMap = new KeyCode[27]
     {
@@ -110,6 +112,11 @@ public class GameManager : MonoBehaviour
 
     private void InitializeBoard()
     {
+        foreach (GameObject cube in activeWinLines)
+        {
+            Destroy(cube);
+        }
+
         for (int z = 0; z < GRID_SIZE; z++)
         {
             for (int y = 0; y < GRID_SIZE; y++)
@@ -340,46 +347,98 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    private void PlaceWinLine(Vector3 pos1, Vector3 pos2, Vector3 pos3)
+    {
+        
+        GameObject winLine = Instantiate(gridLinePrefab);
+        LineRenderer lr = winLine.GetComponent<LineRenderer>();
+        lr.SetPosition(0, pos1);
+        lr.SetPosition(1, pos3);
+
+
+        // Guardar o animar si deseas
+        activeWinLines.Add(winLine); // Si estás guardando estas líneas
+        
+    }
+
     private bool CheckWin(char player)
     {
-        // Verificar en las 3 dimensiones
-        for (int i = 0; i < GRID_SIZE; i++)
-        {
-            for (int j = 0; j < GRID_SIZE; j++)
-            {
-                if ((board[i, j, 0] == player && board[i, j, 1] == player && board[i, j, 2] == player) ||
-                    (board[i, 0, j] == player && board[i, 1, j] == player && board[i, 2, j] == player) ||
-                    (board[0, i, j] == player && board[1, i, j] == player && board[2, i, j] == player))
-                    return true;
-            }
-        }
+        // Ejes Z (planos XY)
+        if (CheckAndDraw(player, 0, 0, 0, 0, 0, 1, 0, 0, 2)) return true;
+        if (CheckAndDraw(player, 0, 1, 0, 0, 1, 1, 0, 1, 2)) return true;
+        if (CheckAndDraw(player, 0, 2, 0, 0, 2, 1, 0, 2, 2)) return true;
+        if (CheckAndDraw(player, 1, 0, 0, 1, 0, 1, 1, 0, 2)) return true;
+        if (CheckAndDraw(player, 1, 1, 0, 1, 1, 1, 1, 1, 2)) return true;
+        if (CheckAndDraw(player, 1, 2, 0, 1, 2, 1, 1, 2, 2)) return true;
+        if (CheckAndDraw(player, 2, 0, 0, 2, 0, 1, 2, 0, 2)) return true;
+        if (CheckAndDraw(player, 2, 1, 0, 2, 1, 1, 2, 1, 2)) return true;
+        if (CheckAndDraw(player, 2, 2, 0, 2, 2, 1, 2, 2, 2)) return true;
 
-        // Verificar diagonales
-        if ((board[0, 0, 0] == player && board[1, 1, 1] == player && board[2, 2, 2] == player) ||
-            (board[0, 2, 0] == player && board[1, 1, 1] == player && board[2, 0, 2] == player) ||
-            (board[2, 0, 0] == player && board[1, 1, 1] == player && board[0, 2, 2] == player) ||
-            (board[2, 2, 0] == player && board[1, 1, 1] == player && board[0, 0, 2] == player))
+        // Ejes Y (planos XZ)
+        if (CheckAndDraw(player, 0, 0, 0, 0, 1, 0, 0, 2, 0)) return true;
+        if (CheckAndDraw(player, 0, 0, 1, 0, 1, 1, 0, 2, 1)) return true;
+        if (CheckAndDraw(player, 0, 0, 2, 0, 1, 2, 0, 2, 2)) return true;
+        if (CheckAndDraw(player, 1, 0, 0, 1, 1, 0, 1, 2, 0)) return true;
+        if (CheckAndDraw(player, 1, 0, 1, 1, 1, 1, 1, 2, 1)) return true;
+        if (CheckAndDraw(player, 1, 0, 2, 1, 1, 2, 1, 2, 2)) return true;
+        if (CheckAndDraw(player, 2, 0, 0, 2, 1, 0, 2, 2, 0)) return true;
+        if (CheckAndDraw(player, 2, 0, 1, 2, 1, 1, 2, 2, 1)) return true;
+        if (CheckAndDraw(player, 2, 0, 2, 2, 1, 2, 2, 2, 2)) return true;
+
+        // Ejes X (planos YZ)
+        if (CheckAndDraw(player, 0, 0, 0, 1, 0, 0, 2, 0, 0)) return true;
+        if (CheckAndDraw(player, 0, 0, 1, 1, 0, 1, 2, 0, 1)) return true;
+        if (CheckAndDraw(player, 0, 0, 2, 1, 0, 2, 2, 0, 2)) return true;
+        if (CheckAndDraw(player, 0, 1, 0, 1, 1, 0, 2, 1, 0)) return true;
+        if (CheckAndDraw(player, 0, 1, 1, 1, 1, 1, 2, 1, 1)) return true;
+        if (CheckAndDraw(player, 0, 1, 2, 1, 1, 2, 2, 1, 2)) return true;
+        if (CheckAndDraw(player, 0, 2, 0, 1, 2, 0, 2, 2, 0)) return true;
+        if (CheckAndDraw(player, 0, 2, 1, 1, 2, 1, 2, 2, 1)) return true;
+        if (CheckAndDraw(player, 0, 2, 2, 1, 2, 2, 2, 2, 2)) return true;
+
+        // Diagonales espaciales
+        if (CheckAndDraw(player, 0, 0, 0, 1, 1, 1, 2, 2, 2)) return true;
+        if (CheckAndDraw(player, 0, 2, 0, 1, 1, 1, 2, 0, 2)) return true;
+        if (CheckAndDraw(player, 2, 0, 0, 1, 1, 1, 0, 2, 2)) return true;
+        if (CheckAndDraw(player, 2, 2, 0, 1, 1, 1, 0, 0, 2)) return true;
+
+        // Plano XY en z
+        if (CheckAndDraw(player, 0, 0, 0, 0, 1, 1, 0, 2, 2)) return true; 
+        if (CheckAndDraw(player, 0, 0, 2, 0, 1, 1, 0, 2, 0)) return true;
+        if (CheckAndDraw(player, 1, 0, 0, 1, 1, 1, 1, 2, 2)) return true;
+        if (CheckAndDraw(player, 1, 0, 2, 1, 1, 1, 1, 2, 0)) return true;
+        if (CheckAndDraw(player, 2, 0, 0, 2, 1, 1, 2, 2, 2)) return true;
+        if (CheckAndDraw(player, 2, 0, 2, 2, 1, 1, 2, 2, 0)) return true;
+
+        // Plano XZ en y
+        if (CheckAndDraw(player, 0, 0, 0, 1, 0, 1, 2, 0, 2)) return true;
+        if (CheckAndDraw(player, 0, 0, 2, 1, 0, 1, 2, 0, 0)) return true;
+        if (CheckAndDraw(player, 0, 1, 0, 1, 1, 1, 2, 1, 2)) return true;
+        if (CheckAndDraw(player, 0, 1, 2, 1, 1, 1, 2, 1, 0)) return true;
+        if (CheckAndDraw(player, 0, 2, 0, 1, 2, 1, 2, 2, 2)) return true;
+        if (CheckAndDraw(player, 0, 2, 2, 1, 2, 1, 2, 2, 0)) return true;
+
+        // Plano YZ en x
+        if (CheckAndDraw(player, 0, 0, 0, 1, 1, 0, 2, 2, 0)) return true;
+        if (CheckAndDraw(player, 2, 0, 0, 1, 1, 0, 0, 2, 0)) return true;
+        if (CheckAndDraw(player, 0, 0, 1, 1, 1, 1, 2, 2, 1)) return true;
+        if (CheckAndDraw(player, 2, 0, 1, 1, 1, 1, 0, 2, 1)) return true;
+        if (CheckAndDraw(player, 0, 0, 2, 1, 1, 2, 2, 2, 2)) return true;
+        if (CheckAndDraw(player, 2, 0, 2, 1, 1, 2, 0, 2, 2)) return true;
+
+        return false;
+    }
+
+    private bool CheckAndDraw(char player, int z1, int y1, int x1, int z2, int y2, int x2, int z3, int y3, int x3)
+    {
+        if (board[z1, y1, x1] == player && board[z2, y2, x2] == player && board[z3, y3, x3] == player)
+        {
+            Vector3 p1 = boardPositions[z1, y1, x1];
+            Vector3 p2 = boardPositions[z2, y2, x2];
+            Vector3 p3 = boardPositions[z3, y3, x3];
+            PlaceWinLine(p1, p2, p3);
             return true;
-
-        for (int i = 0; i < GRID_SIZE; i++)
-        {
-            if ((board[i, 0, 0] == player && board[i, 1, 1] == player && board[i, 2, 2] == player) ||
-                (board[0, 0, i] == player && board[1, 1, i] == player && board[2, 2, i] == player) ||
-                (board[0, i, 0] == player && board[1, i, 1] == player && board[2, i, 2] == player))
-                return true;
         }
-
-        for (int i = 0; i < GRID_SIZE; i++)
-        {
-            if ((board[i, 0, 2] == player && board[i, 1, 1] == player && board[i, 2, 0] == player) ||
-                (board[0, 2, i] == player && board[1, 1, i] == player && board[2, 0, i] == player) ||
-                (board[0, i, 2] == player && board[1, i, 1] == player && board[2, i, 0] == player))
-                return true;
-        }
-
-        if ((board[2, 0, 0] == player && board[1, 0, 0] == player && board[1, 2, 1] == player && board[1, 0, 2] == player))
-            return true;
-
         return false;
     }
 
